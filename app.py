@@ -37,7 +37,7 @@ def load_rag_chain():
     Answer:
     """
     prompt = PromptTemplate.from_template(prompt_template_str)
-    llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0)
 
     rag_chain = (
         {"context": retriever, "question": RunnablePassthrough()}
