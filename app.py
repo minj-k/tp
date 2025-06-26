@@ -50,7 +50,7 @@ def load_rag_chain():
     Answer:
     """
     prompt = PromptTemplate.from_template(prompt_template_str)
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-latest", temperature=0.2)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0.2)
 
     # --- RAG 체인 구성 (수정된 부분) ---
     rag_chain = (
