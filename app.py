@@ -1,5 +1,3 @@
-# app.py 의 전체 내용입니다. 이 코드로 교체해주세요.
-
 import streamlit as st
 import os
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
@@ -7,6 +5,14 @@ from langchain_community.vectorstores import FAISS
 from langchain.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.documents import Document # Document 타입을 명시하기 위해 추가
+
+# --- 검색된 문서들을 하나의 문자열로 합쳐주는 함수 ---
+def format_docs(docs: list[Document]) -> str:
+    """검색된 Document 객체 리스트를 하나의 문자열로 결합합니다."""
+    return "\n\n".join(doc.page_content for doc in docs)
+# ---------------------------------------------------
+
 
 # --- 초기 설정 (미리 만들어진 벡터DB 로드) ---
 @st.cache_resource
@@ -17,12 +23,10 @@ def load_rag_chain():
         st.error("Streamlit Secrets에 GOOGLE_API_KEY가 설정되지 않았습니다.")
         st.stop()
 
-    # 미리 만들어둔 faiss_index 폴더를 로드합니다.
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     vectorstore = FAISS.load_local("./faiss_index", embeddings, allow_dangerous_deserialization=True)
     st.sidebar.success("임베딩 DB 로드 완료!", icon="✅")
 
-    # RAG 체인 구성 (이전과 동일)
     retriever = vectorstore.as_retriever(search_kwargs={'k': 5})
     prompt_template_str = """
     당신은 제공된 문맥(context)을 바탕으로 사용자의 질문에 정확하고 근거 있는 답변을 하는 AI 어시스턴트입니다.
@@ -39,12 +43,16 @@ def load_rag_chain():
     prompt = PromptTemplate.from_template(prompt_template_str)
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0)
 
+    # --- RAG 체인 구성 (수정된 부분) ---
     rag_chain = (
-        {"context": retriever, "question": RunnablePassthrough()}
+        # retriever의 검색 결과를 format_docs 함수로 넘겨 문자열로 변환
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
         | prompt
         | llm
         | StrOutputParser()
     )
+    # ------------------------------------
+
     return rag_chain
 
 # --- Streamlit UI 구성 및 실행 ---
