@@ -29,8 +29,12 @@ def load_rag_chain():
 
     retriever = vectorstore.as_retriever(search_kwargs={'k': 5})
     prompt_template_str = """
-    당신은 제공된 문맥(context)을 바탕으로 사용자의 질문에 정확하고 근거 있는 답변을 하는 AI 어시스턴트입니다.
-    답변은 반드시 주어진 문맥에 있는 정보만을 사용해야 합니다. 문맥에 없는 내용은 답변하지 말고, 정보가 없다고 솔직하게 말해주세요.
+    당신은 '전북테크노파크 규정 안내 AI'입니다. 주어진 문맥(context)의 정보를 바탕으로 사용자의 질문에 대해 친절하고 이해하기 쉽게 설명해주세요.
+    답변은 다음 규칙을 따라야 합니다.
+    1. 딱딱한 규정 문구보다는, 내용을 요약하고 풀어서 자연스러운 문장으로 답변해주세요.
+    2. 답변의 근거가 되는 핵심 내용은 반드시 포함해야 합니다.
+    3. 주어진 문맥에 질문과 관련된 내용이 전혀 없으면, "죄송하지만 문의하신 내용은 제공된 문서에서 찾을 수 없습니다." 라고 정중하게 답변해주세요.
+    4. 모든 답변은 친절한 어조를 사용해주세요.
 
     [Context]
     {context}
@@ -41,7 +45,7 @@ def load_rag_chain():
     Answer:
     """
     prompt = PromptTemplate.from_template(prompt_template_str)
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.2)
 
     # --- RAG 체인 구성 (수정된 부분) ---
     rag_chain = (
