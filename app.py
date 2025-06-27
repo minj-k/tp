@@ -25,10 +25,10 @@ def load_resources():
     
     fast_llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.05)
     
-    return ict_retriever, tp_retriever, law_retriever, fast_llm, smart_llm
+    return ict_retriever, tp_retriever, law_retriever, fast_llm
 
 # --- 2. 체인 및 프롬프트 정의 ---
-def setup_chains(fast_llm, smart_llm):
+def setup_chains(fast_llm):
     # 체인 1: 질문 재구성 체인 (꼬리 질문 처리용)
     rewrite_prompt = ChatPromptTemplate.from_messages(
         [
@@ -65,7 +65,7 @@ def setup_chains(fast_llm, smart_llm):
             ("human", "{input}"),
         ]
     )
-    final_chain = final_prompt | smart_llm | StrOutputParser()
+    final_chain = final_prompt | StrOutputParser()
     
     return rewrite_chain, final_chain
 
@@ -97,9 +97,8 @@ def get_response(user_input, chat_history, retrievers, chains):
     return final_answer
 
 # --- Streamlit UI 설정 ---
-st.set_page_config(page_title="최종 규정 질의응답 챗봇", page_icon="🏛️")
-st.title("🏛️ 최종 규정 질의응답 챗봇")
-st.info("ICT지침 > TP규정 > 상위법 순서로 답변하며, 이전 대화를 기억합니다.")
+st.set_page_config(page_title="예산 질의응답 챗봇", page_icon="🏛️")
+st.title("🏛️ 예산 질의응답 챗봇")
 
 try:
     ict_retriever, tp_retriever, law_retriever, fast_llm, smart_llm = load_resources()
