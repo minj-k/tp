@@ -55,14 +55,14 @@ def load_rag_chain():
 
     # --- [최종 확정] 2개의 Retriever 생성 (변수명 명확화) ---
     # 규정집 Retriever
-    retriever_reg = vectorstore_reg.as_retriever(search_kwargs={'k': 5})
+    retriever_reg = vectorstore_reg.as_retriever(search_kwargs={'k': 8})
     # 법규 Retriever
-    retriever_law = vectorstore_law.as_retriever(search_kwargs={'k': 3})
+    retriever_law = vectorstore_law.as_retriever(search_kwargs={'k': 5})
 
     # --- Ensemble Retriever 구성 (변경 없음) ---
     ensemble_retriever = EnsembleRetriever(
         retrievers=[retriever_reg, retriever_law],
-        weights=[0.6, 0.4]
+        weights=[0.7, 0.3]
     )
     # ------------------------------------
 
@@ -72,6 +72,7 @@ def load_rag_chain():
     아래의 프로세스에 따라 지원사업을 수행하는 회사 담당자의 질문에 답변해주세요.
     
     [가장 중요한 원칙]
+        - **관점 유지 및 변환 (가장 중요):** 당신의 답변은 항상 '지원 기업 담당자'에게 조언하는 입장에서 작성되어야 합니다. [Context]에 있는 내용은 TP 내부 관점의 규정이므로, 그 내용을 그대로 전달하지 말고, **기업 입장에서 '무엇을 해야 하는지'**로 변환하여 설명해야 합니다. 예를 들어, 규정에 'TP 담당자 날인'이라는 문구가 있다면, "귀사의 책임자 날인이 필요하며, 이 서류를 저희 TP에 제출하셔야 합니다" 와 같이 변환해야 합니다.
         - 당신은 이미 모든 규정집과 법규를 숙지한 최고의 전문가입니다.
         - 절대로 '규정집을 직접 찾아보세요', '원문을 확인하세요', '담당자에게 문의하세요' 와 같이 사용자에게 책임을 넘기는 답변을 해서는 안 됩니다.
         - 당신은 사용자를 대신하여 DB에서 정보를 찾고, 그것을 분석하고, 핵심 내용을 요약하여 직접적인 답변을 제공해야 할 의무가 있습니다.
@@ -112,7 +113,7 @@ def load_rag_chain():
     Answer:
     """
     prompt = PromptTemplate.from_template(prompt_template_str)
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.1)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.05)
 
     rag_chain = (
         {"context": ensemble_retriever | format_docs, "question": RunnablePassthrough()}
@@ -127,7 +128,7 @@ def load_rag_chain():
 try:
     rag_chain = load_rag_chain()
     st.set_page_config(page_title="규정 질의응답 챗봇", page_icon="📚")
-    st.title("📚 예산 및 규정 질의응답 챗봇 (심화 버전)")
+    st.title("📚 예산 및 규정 질의응답 챗봇")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
