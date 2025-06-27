@@ -23,8 +23,7 @@ def load_resources():
     tp_retriever = FAISS.load_local("./faiss_index_tp", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
     law_retriever = FAISS.load_local("./faiss_index_law", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
     
-    fast_llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0)
-    smart_llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0.3)
+    fast_llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.05)
     
     return ict_retriever, tp_retriever, law_retriever, fast_llm, smart_llm
 
