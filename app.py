@@ -7,9 +7,12 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
 
-# --- 1. 초기 리소스 로드 (3개의 DB, LLM) ---
+# --- 1. 초기 리소스 로드 (DB, 단일 LLM) ---
 @st.cache_resource
 def load_resources():
+    """
+    API 키 설정, 3개의 벡터 DB(ICT, TP, LAW) 로드, 단일 LLM 모델('flash' 버전)을 초기화합니다.
+    """
     try:
         os.environ['GOOGLE_API_KEY'] = st.secrets["GOOGLE_API_KEY"]
     except Exception:
@@ -23,12 +26,17 @@ def load_resources():
     tp_retriever = FAISS.load_local("./faiss_index_tp", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
     law_retriever = FAISS.load_local("./faiss_index_law", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
     
-    fast_llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.05)
+    # 무료 버전인 'flash' 모델 하나만 생성하여 사용합니다.
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.3)
     
-    return ict_retriever, tp_retriever, law_retriever, fast_llm
+    # 총 4개의 변수를 반환합니다. (리트리버 3개, LLM 1개)
+    return ict_retriever, tp_retriever, law_retriever, llm
 
 # --- 2. 체인 및 프롬프트 정의 ---
-def setup_chains(fast_llm):
+def setup_chains(llm):
+    """
+    하나의 LLM을 사용하여 2개의 핵심 체인을 정의합니다.
+    """
     # 체인 1: 질문 재구성 체인 (꼬리 질문 처리용)
     rewrite_prompt = ChatPromptTemplate.from_messages(
         [
@@ -37,7 +45,7 @@ def setup_chains(fast_llm):
             ("human", "{input}"),
         ]
     )
-    rewrite_chain = rewrite_prompt | fast_llm | StrOutputParser()
+    rewrite_chain = rewrite_prompt | llm | StrOutputParser()
 
     # 체인 2: 최종 답변 생성 체인 (계층적 우선순위 지시 포함)
     final_prompt = ChatPromptTemplate.from_messages(
@@ -65,7 +73,7 @@ def setup_chains(fast_llm):
             ("human", "{input}"),
         ]
     )
-    final_chain = final_prompt | StrOutputParser()
+    final_chain = final_prompt | llm | StrOutputParser()
     
     return rewrite_chain, final_chain
 
@@ -74,18 +82,12 @@ def get_response(user_input, chat_history, retrievers, chains):
     rewrite_chain, final_chain = chains
     ict_retriever, tp_retriever, law_retriever = retrievers
 
-    # 1. 질문 재구성
-    rewritten_question = rewrite_chain.invoke({
-        "input": user_input,
-        "chat_history": chat_history
-    })
+    rewritten_question = rewrite_chain.invoke({"input": user_input, "chat_history": chat_history})
     
-    # 2. 3개의 DB에서 병렬적으로 관련 문서 검색
     ict_docs = ict_retriever.invoke(rewritten_question)
     tp_docs = tp_retriever.invoke(rewritten_question)
     law_docs = law_retriever.invoke(rewritten_question)
     
-    # 3. 모든 정보를 종합하여 최종 답변 생성
     final_answer = final_chain.invoke({
         "ict_context": "\n".join([doc.page_content for doc in ict_docs]),
         "tp_context": "\n".join([doc.page_content for doc in tp_docs]),
@@ -97,12 +99,15 @@ def get_response(user_input, chat_history, retrievers, chains):
     return final_answer
 
 # --- Streamlit UI 설정 ---
-st.set_page_config(page_title="예산 질의응답 챗봇", page_icon="🏛️")
-st.title("🏛️ 예산 질의응답 챗봇")
+st.set_page_config(page_title="최종 규정 질의응답 챗봇", page_icon="🏛️")
+st.title("🏛️ 최종 규정 질의응답 챗봇")
+st.info("ICT지침 > TP규정 > 상위법 순서로 답변하며, 이전 대화를 기억합니다.")
 
 try:
-    ict_retriever, tp_retriever, law_retriever, fast_llm, smart_llm = load_resources()
-    rewrite_chain, final_chain = setup_chains(fast_llm, smart_llm)
+    # 수정된 부분: 이제 4개의 변수만 받습니다.
+    ict_retriever, tp_retriever, law_retriever, llm = load_resources()
+    # 수정된 부분: 이제 하나의 llm만 전달합니다.
+    rewrite_chain, final_chain = setup_chains(llm)
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
