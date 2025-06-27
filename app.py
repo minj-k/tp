@@ -30,7 +30,10 @@ def load_resources():
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     
     # 3개의 분리된 벡터 스토어를 모두 로드합니다.
-    ict_retriever = FAISS.load_local("./faiss_index_ict", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
+    ict_retriever = retriever = FAISS.load_local("./faiss_index_ict", embeddings, allow_dangerous_deserialization=True).as_retriever(
+    search_type="mmr", # Maximal Marginal Relevance: 다양성을 고려한 검색
+    search_kwargs={'k': 7, 'fetch_k': 20}
+)
     tp_retriever = FAISS.load_local("./faiss_index_tp", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
     law_retriever = FAISS.load_local("./faiss_index_law", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
     
