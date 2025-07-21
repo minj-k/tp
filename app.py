@@ -141,4 +141,12 @@ try:
             st.markdown(prompt)
 
         with st.spinner("답변을 분석하고 있습니다..."):
-            answer = get_response(prompt, st.session_state
+            answer = get_response(prompt, st.session_state):
+            answer = get_response(prompt, st.session_state.chat_history, (qa_retriever, ict_retriever, tp_retriever, law_retriever), (qa_gate_chain, rewrite_chain, final_chain))
+            
+            st.session_state.chat_history.append(AIMessage(content=answer))
+            with st.chat_message("assistant"):
+                st.markdown(answer)
+
+except Exception as e:
+    st.error(f"오류가 발생했습니다. 잠시 후 다시 시도해주세요.\n\n오류 상세: {e}")
