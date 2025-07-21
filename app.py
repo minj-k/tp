@@ -18,20 +18,38 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
 
 # --- 1. 초기 리소스 로드 (4개의 DB, LLM) ---
+# [수정된 부분] app.py 상단에 import os 가 있는지 확인해주세요.
+import os 
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+from langchain_community.vectorstores import FAISS
+# ... (기타 import)
+
+# --- 1. 초기 리소스 로드 (수정된 부분: 절대 경로 사용) ---
 @st.cache_resource
 def load_resources():
-    # ... (이하 모든 코드는 이전과 동일합니다) ...
     try:
         os.environ['GOOGLE_API_KEY'] = st.secrets["GOOGLE_API_KEY"]
     except Exception:
         st.error("Streamlit Secrets에 GOOGLE_API_KEY가 설정되지 않았습니다.")
         st.stop()
+
+    # 현재 app.py 파일의 위치를 기준으로 절대 경로를 만듭니다.
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    QA_INDEX_PATH = os.path.join(BASE_DIR, "faiss_index_qa")
+    ICT_INDEX_PATH = os.path.join(BASE_DIR, "faiss_index_ict")
+    TP_INDEX_PATH = os.path.join(BASE_DIR, "faiss_index_tp")
+    LAW_INDEX_PATH = os.path.join(BASE_DIR, "faiss_index_law")
+
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-    qa_retriever = FAISS.load_local("./faiss_index_qa", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 1})
-    ict_retriever = FAISS.load_local("./faiss_index_ict", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
-    tp_retriever = FAISS.load_local("./faiss_index_tp", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
-    law_retriever = FAISS.load_local("./faiss_index_law", embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
+    
+    # 수정된 절대 경로로 4개의 벡터 스토어를 모두 로드합니다.
+    qa_retriever = FAISS.load_local(QA_INDEX_PATH, embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 1})
+    ict_retriever = FAISS.load_local(ICT_INDEX_PATH, embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
+    tp_retriever = FAISS.load_local(TP_INDEX_PATH, embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
+    law_retriever = FAISS.load_local(LAW_INDEX_PATH, embeddings, allow_dangerous_deserialization=True).as_retriever(search_kwargs={'k': 5})
+    
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.3)
+    
     return qa_retriever, ict_retriever, tp_retriever, law_retriever, llm
 
 # --- 2. 체인 및 프롬프트 정의 ---
