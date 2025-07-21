@@ -141,7 +141,6 @@ try:
             st.markdown(prompt)
 
         with st.spinner("답변을 분석하고 있습니다..."):
-            answer = get_response(prompt, st.session_state):
             answer = get_response(prompt, st.session_state.chat_history, (qa_retriever, ict_retriever, tp_retriever, law_retriever), (qa_gate_chain, rewrite_chain, final_chain))
             
             st.session_state.chat_history.append(AIMessage(content=answer))
