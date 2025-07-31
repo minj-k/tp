@@ -41,7 +41,7 @@ KNOWLEDGE_BASE_DESCRIPTIONS = {
 
 def get_best_knowledge_base(user_query):
     """사용자 질문에 가장 적합한 지식 베이스 폴더 이름을 결정하는 라우터 함수."""
-    llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=google_api_key, temperature=0)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", google_api_key=google_api_key, temperature=0)
     
     # 지식 베이스 설명을 프롬프트에 포함
     descriptions_text = "\n".join([f"- {name}: {desc}" for name, desc in KNOWLEDGE_BASE_DESCRIPTIONS.items()])
@@ -82,7 +82,7 @@ def load_retrieval_chain(index_name):
         allow_dangerous_deserialization=True
     )
 
-    llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=google_api_key, temperature=0.3)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", google_api_key=google_api_key, temperature=0.3)
     
     prompt = ChatPromptTemplate.from_template("""
     주어진 내용을 바탕으로 질문에 답변해주세요.
