@@ -1,46 +1,51 @@
 import streamlit as st
-import os
+from langchain_openai import ChatOpenAI
 
-st.set_page_config(page_title="파일 경로 진단")
-st.title("📂 Streamlit Cloud 파일 경로 진단")
+# --- 페이지 설정 ---
+# st.set_page_config()는 항상 가장 먼저 실행되어야 합니다.
+st.set_page_config(
+    page_title="☃️ 예산관리 챗봇",
+    page_icon="🤖",
+    layout="centered",
+)
 
-st.write("이 앱은 배포된 저장소의 파일 구조를 확인하기 위한 진단용 페이지입니다.")
-st.warning("이 화면을 캡처하여 AI 어시스턴트에게 보여주세요.")
+# --- 제목 ---
+st.title("☃️ 예산관리 챗봇")
+st.write("안녕하세요! 무엇이든 물어보세요.")
 
-# --- 1. 현재 작업 디렉토리 확인 ---
+# --- API 키 설정 및 LLM 초기화 ---
+# Streamlit의 secrets 기능을 사용하여 API 키를 안전하게 관리합니다.
 try:
-    cwd = os.getcwd()
-    st.subheader("1. 현재 스크립트의 실행 위치 (CWD):")
-    st.code(cwd, language='bash')
-except Exception as e:
-    st.error(f"현재 작업 디렉토리를 얻는 중 오류 발생: {e}")
+    llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model_name="gpt-4o-mini")
+except Exception:
+    st.error("OpenAI API 키를 설정해주세요! (.streamlit/secrets.toml)")
     st.stop()
 
-# --- 2. 현재 위치의 폴더 및 파일 목록 ---
-st.subheader(f"2. 현재 위치 '{cwd}' 의 전체 파일 및 폴더 목록:")
-try:
-    root_contents = os.listdir(cwd)
-    if root_contents:
-        st.write(root_contents)
-    else:
-        st.write("폴더가 비어있습니다.")
-except Exception as e:
-    st.error(f"폴더 내용을 읽는 중 오류 발생: {e}")
 
-# --- 3. 'faiss_index_qa' 폴더 존재 여부 정밀 확인 ---
-st.subheader("3. 'faiss_index_qa' 폴더를 찾을 수 있는지 확인:")
-qa_path_relative = "faiss_index_qa"
-qa_path_absolute = os.path.join(cwd, qa_path_relative)
+# --- 세션 상태 초기화 ---
+# 'messages'가 세션 상태에 없으면 빈 리스트로 초기화합니다.
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-st.write(f"찾으려는 절대 경로: `{qa_path_absolute}`")
+# --- 이전 대화 기록 표시 ---
+# 사용자가 새 입력을 하기 전에도 항상 이전 대화 내용을 표시합니다.
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-if os.path.exists(qa_path_absolute):
-    st.success(f"✅ 성공: '{qa_path_absolute}' 경로에서 폴더를 찾았습니다.")
-    try:
-        qa_contents = os.listdir(qa_path_absolute)
-        st.write(f"'faiss_index_qa' 폴더 내용: `{qa_contents}`")
-    except Exception as e:
-        st.error(f"'faiss_index_qa' 폴더 내용을 읽는 중 오류 발생: {e}")
-else:
-    st.error(f"❌ 실패: '{qa_path_absolute}' 경로에 폴더가 존재하지 않습니다.")
-    st.write("GitHub 저장소의 최상위 위치에 'faiss_index_qa' 폴더가 있는지 다시 확인해주세요.")
+# --- 사용자 입력 처리 ---
+if prompt := st.chat_input("메시지를 입력하세요."):
+    # 1. 사용자 메시지를 세션 상태와 화면에 추가
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # 2. AI 응답 생성 및 표시
+    with st.chat_message("assistant"):
+        # LangChain의 stream 기능을 사용하여 실시간으로 답변을 생성합니다.
+        stream = llm.stream(st.session_state.messages)
+        # st.write_stream을 통해 스트리밍 응답을 화면에 표시합니다.
+        response = st.write_stream(stream)
+    
+    # 3. AI 응답을 세션 상태에 추가
+    st.session_state.messages.append({"role": "assistant", "content": response})
