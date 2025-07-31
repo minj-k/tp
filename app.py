@@ -1,5 +1,5 @@
 import streamlit as st
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 # --- 페이지 설정 ---
 # st.set_page_config()는 항상 가장 먼저 실행되어야 합니다.
@@ -16,9 +16,12 @@ st.write("안녕하세요! 무엇이든 물어보세요.")
 # --- API 키 설정 및 LLM 초기화 ---
 # Streamlit의 secrets 기능을 사용하여 API 키를 안전하게 관리합니다.
 try:
-    llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model_name="gpt-4o-mini")
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-pro", 
+        google_api_key=st.secrets["GOOGLE_API_KEY"]
+    )
 except Exception:
-    st.error("OpenAI API 키를 설정해주세요! (.streamlit/secrets.toml)")
+    st.error("Google API 키를 설정해주세요! (.streamlit/secrets.toml)")
     st.stop()
 
 
