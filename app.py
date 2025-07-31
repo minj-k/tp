@@ -34,7 +34,7 @@ KNOWLEDGE_BASE_DESCRIPTIONS = {
     "faiss_index_ict": "정보통신기술(ICT)과 관련된 최신 기술, 트렌드, 용어에 대한 정보를 담고 있습니다.",
     "faiss_index_law": "법률, 규제, 판례 등 법과 관련된 전문적인 내용을 다룹니다.",
     "faiss_index_qa": "일반적인 질문과 답변(Q&A) 형식의 매뉴얼입니다.",
-    "faiss_index_tp": "특정 기술 프로젝트(Technical Project)의 명세, 진행 상황, 관련 자료를 포함합니다."
+    "faiss_index_tp": "테크노파크(TP)의 규정 자료를 포함합니다."
 }
 
 # --- 핵심 기능 함수 ---
