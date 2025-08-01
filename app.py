@@ -20,7 +20,7 @@ except RuntimeError:
 
 # --- 페이지 설정 ---
 st.set_page_config(
-    page_title="💰 예산관리 챗봇",
+    page_title="� 예산관리 챗봇",
     page_icon="🤖",
     layout="wide",
 )
@@ -88,7 +88,9 @@ def create_conversational_rag_chain(vector_store):
     VectorStore를 기반으로 대화형 RAG 체인을 생성합니다.
     """
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", google_api_key=google_api_key, temperature=0.1)
-    retriever = vector_store.as_retriever()
+    
+    # Retriever 설정: 검색 결과 개수를 4개로 제한하여 API 요청 크기를 조절
+    retriever = vector_store.as_retriever(search_kwargs={'k': 4})
 
     # 1. 질문 재구성 프롬프트 및 체인
     # 대화 기록을 바탕으로 후속 질문을 독립적인 질문으로 재구성합니다.
@@ -106,11 +108,11 @@ def create_conversational_rag_chain(vector_store):
     )
 
     # 2. 답변 생성 프롬프트 및 체인
-    # 재구성된 질문과 검색된 문서를 바탕으로 최종 답변을 생성합니다.
+    # **전체 대화 기록(chat_history)을 제외하여 API 요청을 최소화합니다.**
     qa_system_prompt = """당신은 제공된 문서를 기반으로 질문에 답변하는 전문 AI 어시스턴트입니다.
 
     **중요 지침:**
-    1.  **내용 기반 답변:** 아래에 제공된 <context> 내용만을 사용하여 사용자의 질문에 답변해야 합니다. 추측하거나 외부 지식을 사용하지 마세요.
+    1.  **내용 기반 답변:** 아래에 제공된 <context> 내용만을 사용하여 사용자의 질문에 답변해야 합니다. <context>내에 정확하게 일치하지는 않지만 비슷한 내용이 있다면 최대한 사실에 기반하여 정답에 근접하게 대답을 하세요.
     2.  **표(Table) 데이터 활용:** <context>에 표 형식의 데이터가 있다면, 그 정보를 우선적으로 활용하여 질문에 답해야 합니다.
     3.  **답변 형식:** 답변은 최대한 상세하고 명확하게, 완전한 문장으로 작성해주세요.
     4.  **정보 부재 시:** 만약 <context> 안에 질문에 대한 답변을 찾을 수 없다면, "제공된 문서에서는 해당 정보를 찾을 수 없습니다."라고만 답변해주세요.
@@ -123,8 +125,7 @@ def create_conversational_rag_chain(vector_store):
     qa_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", qa_system_prompt),
-            MessagesPlaceholder("chat_history"),
-            ("human", "{input}"),
+            ("human", "{input}"), # MessagesPlaceholder를 제거하고 사용자의 마지막 입력만 사용
         ]
     )
 
@@ -158,16 +159,20 @@ for message in st.session_state.chat_history:
 
 # 5. 사용자 입력 처리
 if user_query := st.chat_input("질문을 입력하세요..."):
-    st.session_state.chat_history.append(HumanMessage(content=user_query))
     with st.chat_message("Human"):
         st.markdown(user_query)
 
     with st.chat_message("AI"):
         with st.spinner("답변을 생성하는 중입니다..."):
+            # 응답을 받기 전에 사용자 질문을 기록에 추가
+            st.session_state.chat_history.append(HumanMessage(content=user_query))
+            
             response = conversational_rag_chain.invoke(
                 {"input": user_query, "chat_history": st.session_state.chat_history}
             )
             answer = response.get("answer", "답변을 생성하지 못했습니다.")
             st.write(answer)
-            # AIMessage를 채팅 기록에 추가
+            
+            # 응답 받은 후, AI 답변을 기록에 추가
             st.session_state.chat_history.append(AIMessage(content=answer))
+�
