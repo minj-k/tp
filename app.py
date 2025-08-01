@@ -1,6 +1,6 @@
 import streamlit as st
 import asyncio
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -51,8 +51,9 @@ def load_retrieval_chain(index_path):
     )
 
     # 3. LLM 및 프롬프트 준비
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", google_api_key=google_api_key, temperature=0.3)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", google_api_key=google_api_key, temperature=0.1)
     
+    # [수정된 부분] 표 데이터 처리 지침을 포함하여 프롬프트를 강화
     prompt = ChatPromptTemplate.from_template("""
     당신은 제공된 문서를 기반으로 질문에 답변하는 전문 AI 어시스턴트입니다.
 
@@ -61,7 +62,6 @@ def load_retrieval_chain(index_path):
     2.  **표(Table) 데이터 활용:** <context>에 마크다운 형식의 표가 포함되어 있을 수 있습니다. 이 경우, 표의 행과 열 관계를 정확히 파악하여 질문에 답해야 합니다. 예를 들어, 'A의 B는 무엇인가?' 라는 질문에는 표에서 'A' 행과 'B' 열이 만나는 값을 찾아 답해야 합니다.
     3.  **답변 형식:** 답변은 최대한 상세하고 명확하게, 완전한 문장으로 작성해주세요.
     4.  **정보 부재 시:** 만약 <context> 안에 질문에 대한 답변을 찾을 수 없다면, "제공된 문서에서는 해당 정보를 찾을 수 없습니다."라고만 답변해주세요.
-
 
     <context>
     {context}
