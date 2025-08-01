@@ -121,4 +121,3 @@ if user_query := st.chat_input("질문을 입력하세요..."):
                 st.session_state.chat_history.append(AIMessage(content=response["answer"]))
             else:
                 st.error("답변을 생성하지 못했습니다.")
-�
