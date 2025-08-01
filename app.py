@@ -1,6 +1,6 @@
 import streamlit as st
 import asyncio
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI # <-- 이 부분을 수정했습니다.
 from langchain_community.vectorstores import FAISS
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -17,7 +17,7 @@ except RuntimeError:
 # --- 페이지 설정 ---
 st.set_page_config(
     page_title="💰 예산관리 챗봇",
-    page_icon="🤖",
+    page_icon="�",
     layout="wide",
 )
 
@@ -121,3 +121,4 @@ if user_query := st.chat_input("질문을 입력하세요..."):
                 st.session_state.chat_history.append(AIMessage(content=response["answer"]))
             else:
                 st.error("답변을 생성하지 못했습니다.")
+�
