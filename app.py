@@ -1,6 +1,6 @@
 import streamlit as st
 import asyncio
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI # <-- 이 부분을 수정했습니다.
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.vectorstores import FAISS
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -53,7 +53,7 @@ def load_retrieval_chain(index_path):
     # 3. LLM 및 프롬프트 준비
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", google_api_key=google_api_key, temperature=0.1)
     
-    # [수정된 부분] 표 데이터 처리 지침을 포함하여 프롬프트를 강화
+    # 표 데이터 처리 지침을 포함하여 프롬프트를 강화
     prompt = ChatPromptTemplate.from_template("""
     당신은 제공된 문서를 기반으로 질문에 답변하는 전문 AI 어시스턴트입니다.
 
