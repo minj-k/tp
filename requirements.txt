@@ -4,5 +4,8 @@ langchain-openai
 langchain-community
 langchain-google-genai
 pypdf
+pdfplumber
+pandas
+asyncio
 faiss-cpu
 python-dotenv
