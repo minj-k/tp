@@ -54,8 +54,11 @@ def load_retrieval_chain(index_path):
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", google_api_key=google_api_key, temperature=0.3)
     
     prompt = ChatPromptTemplate.from_template("""
-    주어진 내용을 바탕으로 질문에 답변해주세요.
-    내용에 없는 정보는 답변할 수 없다고 솔직하게 말해주세요.
+     당신은 제공된 문서를 기반으로 질문에 답변하는 전문 AI 어시스턴트입니다.
+    오직 아래에 제공된 <context> 내용만을 사용하여 사용자의 질문에 답변해야 합니다.
+    답변은 최대한 상세하고 명확하게 작성해주세요.
+    만약 <context> 안에 질문에 대한 답변이 없다면, 추측하거나 외부 지식을 사용하지 말고 "제공된 문서에서는 해당 정보를 찾을 수 없습니다."라고만 답변해주세요.
+
 
     <context>
     {context}
