@@ -175,4 +175,3 @@ if user_query := st.chat_input("질문을 입력하세요..."):
             
             # 응답 받은 후, AI 답변을 기록에 추가
             st.session_state.chat_history.append(AIMessage(content=answer))
-�
