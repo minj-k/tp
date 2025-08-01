@@ -5,9 +5,9 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGener
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import create_retrieval_chain
+from langchain.chains import create_retrieval_chain, create_history_aware_retriever
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 
 # --- 비동기 이벤트 루프 설정 ---
@@ -83,17 +83,34 @@ def build_or_load_vector_store(data_folder, index_path):
     
     return vector_store
 
-def create_retrieval_chain_from_vector_store(vector_store):
+def create_conversational_rag_chain(vector_store):
     """
-    VectorStore를 기반으로 Retrieval 체인을 생성합니다.
+    VectorStore를 기반으로 대화형 RAG 체인을 생성합니다.
     """
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", google_api_key=google_api_key, temperature=0.1)
+    retriever = vector_store.as_retriever()
+
+    # 1. 질문 재구성 프롬프트 및 체인
+    # 대화 기록을 바탕으로 후속 질문을 독립적인 질문으로 재구성합니다.
+    contextualize_q_system_prompt = """주어진 대화 기록과 최근 사용자 질문을 바탕으로, 대화 기록을 참조할 필요가 없는 독립적인 질문으로 바꾸세요. 질문에 대한 답변은 하지 말고, 필요한 경우 질문을 재구성만 하세요."""
     
-    prompt = ChatPromptTemplate.from_template("""
-    당신은 제공된 문서를 기반으로 질문에 답변하는 전문 AI 어시스턴트입니다.
+    contextualize_q_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", contextualize_q_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ]
+    )
+    history_aware_retriever = create_history_aware_retriever(
+        llm, retriever, contextualize_q_prompt
+    )
+
+    # 2. 답변 생성 프롬프트 및 체인
+    # 재구성된 질문과 검색된 문서를 바탕으로 최종 답변을 생성합니다.
+    qa_system_prompt = """당신은 제공된 문서를 기반으로 질문에 답변하는 전문 AI 어시스턴트입니다.
 
     **중요 지침:**
-    1.  **내용 기반 답변:** 아래에 제공된 <context> 내용만을 사용하여 사용자의 질문에 답변해야 합니다. <context> 내용이 없다면 모든 규정집을 상세하게 살피고 최대한 조합해서 <context>와 최대한 유사하게 만들어 주세요
+    1.  **내용 기반 답변:** 아래에 제공된 <context> 내용만을 사용하여 사용자의 질문에 답변해야 합니다. 추측하거나 외부 지식을 사용하지 마세요.
     2.  **표(Table) 데이터 활용:** <context>에 표 형식의 데이터가 있다면, 그 정보를 우선적으로 활용하여 질문에 답해야 합니다.
     3.  **답변 형식:** 답변은 최대한 상세하고 명확하게, 완전한 문장으로 작성해주세요.
     4.  **정보 부재 시:** 만약 <context> 안에 질문에 대한 답변을 찾을 수 없다면, "제공된 문서에서는 해당 정보를 찾을 수 없습니다."라고만 답변해주세요.
@@ -101,26 +118,30 @@ def create_retrieval_chain_from_vector_store(vector_store):
     <context>
     {context}
     </context>
-
-    [사용자 질문]
-    {input}
-
-    [답변]
-    """)
+    """
     
-    document_chain = create_stuff_documents_chain(llm, prompt)
-    retriever = vector_store.as_retriever()
-    retrieval_chain = create_retrieval_chain(retriever, document_chain)
+    qa_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", qa_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ]
+    )
+
+    question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
     
-    return retrieval_chain
+    # 3. 두 체인 결합
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    
+    return rag_chain
 
 # --- 메인 로직 ---
 
 # 1. Vector Store 생성 또는 로드
 vector_store = build_or_load_vector_store(DATA_FOLDER, FAISS_INDEX_PATH)
 
-# 2. Retrieval 체인 생성
-retrieval_chain = create_retrieval_chain_from_vector_store(vector_store)
+# 2. 대화형 RAG 체인 생성
+conversational_rag_chain = create_conversational_rag_chain(vector_store)
 
 # 3. 채팅 기록 초기화
 if "chat_history" not in st.session_state:
@@ -143,8 +164,10 @@ if user_query := st.chat_input("질문을 입력하세요..."):
 
     with st.chat_message("AI"):
         with st.spinner("답변을 생성하는 중입니다..."):
-            response = retrieval_chain.invoke({"input": user_query, "chat_history": st.session_state.chat_history})
+            response = conversational_rag_chain.invoke(
+                {"input": user_query, "chat_history": st.session_state.chat_history}
+            )
             answer = response.get("answer", "답변을 생성하지 못했습니다.")
             st.write(answer)
+            # AIMessage를 채팅 기록에 추가
             st.session_state.chat_history.append(AIMessage(content=answer))
-
